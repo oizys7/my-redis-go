@@ -8,11 +8,20 @@ import (
 )
 
 const (
-	STRING  = '+'
-	ERROR   = '-'
-	INTEGER = ':'
-	BULK    = '$'
-	ARRAY   = '*'
+	CommandString  = '+'
+	CommandError   = '-'
+	CommandInteger = ':'
+	CommandBulk    = '$'
+	CommandArray   = '*'
+)
+
+const (
+	NULL    = "NULL"
+	STRING  = "STRING"
+	ERROR   = "ERROR"
+	INTEGER = "INTEGER"
+	BULK    = "BULK"
+	ARRAY   = "ARRAY"
 )
 
 // Value redis 命令 set admin ahmed
@@ -82,9 +91,9 @@ func (r *Resp) Read() (Value, error) {
 	}
 
 	switch _type {
-	case ARRAY:
+	case CommandArray:
 		return r.readArray()
-	case BULK:
+	case CommandBulk:
 		return r.readBulk()
 	default:
 		fmt.Printf("Unknown type: %v", string(_type))
@@ -128,11 +137,17 @@ func (r *Resp) readBulk() (Value, error) {
 	}
 
 	bulk := make([]byte, bulkLen)
-	r.reader.Read(bulk)
+	_, err = r.reader.Read(bulk)
+	if err != nil {
+		return Value{}, err
+	}
 	v.bulk = string(bulk)
 
 	// Read the trailing CRLF
-	r.readLine()
+	_, _, err = r.readLine()
+	if err != nil {
+		return Value{}, err
+	}
 
 	return v, nil
 }
@@ -156,15 +171,17 @@ func (w *Writer) Write(v Value) error {
 
 func (v Value) Marshal() []byte {
 	switch v.typ {
-	case "array":
+	case ARRAY:
 		return v.marshalArray()
-	case "bulk":
+	case BULK:
 		return v.marshalBulk()
-	case "string":
+	case STRING:
 		return v.marshalString()
-	case "null":
+	case INTEGER:
+		return v.marshalInteger()
+	case NULL:
 		return v.marshallNull()
-	case "error":
+	case ERROR:
 		return v.marshallError()
 	default:
 		return []byte{}
@@ -173,18 +190,21 @@ func (v Value) Marshal() []byte {
 
 func (v Value) marshalArray() []byte {
 	var bytes []byte
-	bytes = append(bytes, ARRAY)
+	bytes = append(bytes, CommandArray)
 	bytes = append(bytes, strconv.Itoa(len(v.array))...)
+	bytes = append(bytes, '\r', '\n')
+
 	for i := 0; i < len(v.array); i++ {
 		bytes = append(bytes, v.array[i].Marshal()...)
 	}
-
+	str := string(bytes)
+	fmt.Println(str)
 	return bytes
 }
 
 func (v Value) marshalBulk() []byte {
 	var bytes []byte
-	bytes = append(bytes, BULK)
+	bytes = append(bytes, CommandBulk)
 	bytes = append(bytes, strconv.Itoa(len(v.bulk))...)
 	bytes = append(bytes, '\r', '\n')
 	bytes = append(bytes, v.bulk...)
@@ -195,7 +215,15 @@ func (v Value) marshalBulk() []byte {
 
 func (v Value) marshalString() []byte {
 	var bytes []byte
-	bytes = append(bytes, STRING)
+	bytes = append(bytes, CommandString)
+	bytes = append(bytes, v.str...)
+	bytes = append(bytes, '\r', '\n')
+
+	return bytes
+}
+func (v Value) marshalInteger() []byte {
+	var bytes []byte
+	bytes = append(bytes, CommandInteger)
 	bytes = append(bytes, v.str...)
 	bytes = append(bytes, '\r', '\n')
 
@@ -208,7 +236,7 @@ func (v Value) marshallNull() []byte {
 
 func (v Value) marshallError() []byte {
 	var bytes []byte
-	bytes = append(bytes, ERROR)
+	bytes = append(bytes, CommandError)
 	bytes = append(bytes, v.str...)
 	bytes = append(bytes, '\r', '\n')
 

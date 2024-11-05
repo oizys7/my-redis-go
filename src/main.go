@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -32,10 +33,6 @@ func main() {
 	}(conn)
 
 	for {
-		//buf := make([]byte, 1024)
-		// 从 redis 客户端读取指令
-		//_, err := conn.Read(buf)
-
 		resp := NewResp(conn)
 		value, err := resp.Read()
 
@@ -46,11 +43,36 @@ func main() {
 			fmt.Println("error from reading client: ", err.Error())
 			os.Exit(1)
 		}
+
+		if value.typ != "array" {
+			fmt.Println("Invalid request, expected array")
+			continue
+		}
+
+		if len(value.array) == 0 {
+			fmt.Println("Invalid request, expected array length > 0")
+			continue
+		}
+		command := strings.ToUpper(value.array[0].bulk)
+		args := value.array[1:]
+
 		fmt.Println(value)
+		writer := NewWriter(conn)
+
+		// 处理命令
+		handle, ok := Handlers[command]
+		if !ok {
+			//fmt.Println("Invalid command: ", command)
+			err := writer.Write(Value{typ: ERROR, str: "Invalid command: " + command})
+			if err != nil {
+				fmt.Println("error: ", err.Error())
+				return
+			}
+			continue
+		}
 
 		// 向 redis Client 回写数据
-		write := NewWriter(conn)
-		err = write.Write(Value{typ: "string", str: "OK"})
+		err = writer.Write(handle(args))
 		if err != nil {
 			fmt.Println("error: ", err.Error())
 			return
