@@ -18,30 +18,38 @@ func main() {
 		return
 	}
 
-	conn, err := l.Accept()
-	// 端口监听异常处理
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// 请求完成关闭 TCP 连接
-	defer func(conn net.Conn) {
-		err := conn.Close()
+	for {
+		conn, err := l.Accept()
+		// 端口监听异常处理
 		if err != nil {
-
+			fmt.Println(err)
+			os.Exit(1)
 		}
-	}(conn)
 
+		go handlerClientConnection(conn)
+
+		// 请求完成关闭 TCP 连接
+		defer func(conn net.Conn) {
+			err := conn.Close()
+			if err != nil {
+				fmt.Println("error: ", err.Error())
+				return
+			}
+		}(conn)
+	}
+}
+
+func handlerClientConnection(conn net.Conn) {
 	for {
 		resp := NewResp(conn)
 		value, err := resp.Read()
 
 		if err != nil {
 			if err != io.EOF {
-				break
+				fmt.Println("error from reading client: ", err.Error())
 			}
-			fmt.Println("error from reading client: ", err.Error())
-			os.Exit(1)
+			continue
+			//os.Exit(1)
 		}
 
 		if value.typ != "array" {
@@ -62,7 +70,6 @@ func main() {
 		// 处理命令
 		handle, ok := Handlers[command]
 		if !ok {
-			//fmt.Println("Invalid command: ", command)
 			err := writer.Write(Value{typ: ERROR, str: "Invalid command: " + command})
 			if err != nil {
 				fmt.Println("error: ", err.Error())
