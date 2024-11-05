@@ -100,7 +100,7 @@ func hGetAll(args []Value) Value {
 		return Value{typ: NULL}
 	}
 
-	values := []Value{}
+	var values []Value
 	for k, v := range value {
 		values = append(values, Value{typ: BULK, bulk: k})
 		values = append(values, Value{typ: BULK, bulk: v})

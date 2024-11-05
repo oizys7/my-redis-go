@@ -197,8 +197,6 @@ func (v Value) marshalArray() []byte {
 	for i := 0; i < len(v.array); i++ {
 		bytes = append(bytes, v.array[i].Marshal()...)
 	}
-	str := string(bytes)
-	fmt.Println(str)
 	return bytes
 }
 
