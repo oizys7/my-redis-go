@@ -47,7 +47,10 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Println(value)
-		_, err = conn.Write([]byte("+OK\r\n"))
+
+		// 向 redis Client 回写数据
+		write := NewWriter(conn)
+		err = write.Write(Value{typ: "string", str: "OK"})
 		if err != nil {
 			fmt.Println("error: ", err.Error())
 			return
