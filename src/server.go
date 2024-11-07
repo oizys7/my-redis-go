@@ -53,13 +53,24 @@ func (s *Server) triggerActiveExpiryCheck() {
 	defer s.keysExpiryTicker.Stop()
 	for {
 		<-s.keysExpiryTicker.C
-		// todo-w 目前只删除了 SETs 中的过期 key
 		for key, val := range SETs {
 			if (val.ExpiryInMS.Before(time.Now()) && val.ExpiryInMS != time.Time{}) {
 				fmt.Printf("deleting key :%v", key)
 				delete(SETs, key)
 			}
 		}
+
+		//for k1, entryMap := range HSETs {
+		//	for k2, _ := range entryMap {
+		//		if (entryMap[k2].ExpiryInMS.Before(time.Now()) && entryMap[k2].ExpiryInMS != time.Time{}) {
+		//			fmt.Printf("deleting key :%v", k2)
+		//			delete(entryMap, k2)
+		//		}
+		//	}
+		//	if len(entryMap) == 0 {
+		//		delete(HSETs, k1)
+		//	}
+		//}
 	}
 }
 

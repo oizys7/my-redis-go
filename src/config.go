@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"strings"
+	"sync"
 )
 
 var port = flag.String("port", "6379", "port to listen on")
@@ -10,6 +11,7 @@ var dir = flag.String("dir", "", "Directory to store RDB file")
 var dbFileName = flag.String("dbfilename", "dump.rdb", "RDB file name")
 
 var Configs = map[string]string{}
+var ConfigsMu = sync.RWMutex{}
 
 func initConfigs() {
 	// 解析命令行参数
@@ -29,9 +31,9 @@ func configGet(args []Value) Value {
 		return Value{typ: ERROR, str: "ERR unknown command '" + cmd + "'"}
 	}
 	key := args[1].bulk
-	SETsMu.RLock()
+	ConfigsMu.RLock()
 	value, ok := Configs[key]
-	defer SETsMu.RUnlock()
+	defer ConfigsMu.RUnlock()
 	if !ok {
 		return Value{typ: NULL}
 	}
