@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"my-redis-go/logging"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -10,12 +12,19 @@ var port = flag.String("port", "6379", "port to listen on")
 var dir = flag.String("dir", "", "Directory to store RDB file")
 var dbFileName = flag.String("dbfilename", "dump.rdb", "RDB file name")
 
+// var logLevelStr = flag.String("loglevel", "INFO", "log print level")
+var logLevel = flag.Int64("loglevel", 1, "log print level: 0 debug 1 info 2 warning 3 error 4 fatal 5 off")
+var logger = logging.Logger{}
+
 var Configs = map[string]string{}
 var ConfigsMu = sync.RWMutex{}
 
 func initConfigs() {
 	// 解析命令行参数
 	flag.Parse()
+
+	logger = *logging.New(int(*logLevel))
+	Configs["loglevel"] = strconv.FormatInt(*logLevel, 10)
 
 	Configs["port"] = *port
 	Configs["dir"] = *dir

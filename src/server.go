@@ -20,11 +20,11 @@ type ServerConnection struct {
 
 func (s *Server) Start() {
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
-	fmt.Println("Listening on port: " + *port)
+	logger.Info("Listening on port: " + *port)
 
 	// TCP 连接异常处理
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
+		logger.Fatal("Failed to bind to port 6379")
 		os.Exit(1)
 	}
 	s.l = l
@@ -35,7 +35,7 @@ func (s *Server) Start() {
 		con, err := s.l.Accept()
 		// 端口监听异常处理
 		if err != nil {
-			fmt.Println("Error accepting connection: ", err.Error())
+			logger.Fatal("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
 		serverCon := &ServerConnection{
@@ -82,25 +82,26 @@ func (sc *ServerConnection) handler() {
 
 		if err != nil {
 			if err != io.EOF {
-				fmt.Println("error from reading client: ", err.Error())
+				logger.Error("error from reading client: ", err.Error())
 			}
 			continue
 		}
 
 		if value.typ != "array" {
-			fmt.Println("Invalid request, expected array")
+			logger.Error("Invalid request, expected array")
 			continue
 		}
 
 		if len(value.array) == 0 {
-			fmt.Println("Invalid request, expected array length > 0")
+			logger.Error("Invalid request, expected array length > 0")
 			continue
 		}
 		command := strings.ToUpper(value.array[0].bulk)
 		args := value.array[1:]
 
-		fmt.Println("从客户端接收到的数据：")
-		fmt.Println(value)
+		logger.Debug("从客户端接收到的数据：")
+		logger.Debug(fmt.Sprintf("%+v", value))
+
 		writer := NewWriter(conn)
 
 		// 处理命令
@@ -108,7 +109,7 @@ func (sc *ServerConnection) handler() {
 		if !ok {
 			err := writer.Write(Value{typ: ERROR, str: "Invalid command: " + command})
 			if err != nil {
-				fmt.Println("error: ", err.Error())
+				logger.Error("error: ", err.Error())
 				return
 			}
 			continue
@@ -117,7 +118,7 @@ func (sc *ServerConnection) handler() {
 		// 向 redis Client 回写数据
 		err = writer.Write(handle(args))
 		if err != nil {
-			fmt.Println("error: ", err.Error())
+			logger.Error("error: ", err.Error())
 			return
 		}
 	}

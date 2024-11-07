@@ -163,8 +163,8 @@ func NewWriter(w io.Writer) *Writer {
 func (w *Writer) Write(v Value) error {
 	var bytes = v.Marshal()
 
-	fmt.Println("服务端返回的数据：")
-	fmt.Println(string(bytes))
+	logger.Debug("服务端返回的数据：")
+	logger.Debug(string(bytes))
 
 	_, err := w.writer.Write(bytes)
 	if err != nil {

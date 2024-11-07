@@ -34,7 +34,7 @@ const (
 func loadRdbFileIntoKVMemoryStore() {
 	content, err := os.ReadFile(fmt.Sprintf("%s/%s", *dir, *dbFileName))
 	if err != nil {
-		fmt.Println(err.Error())
+		logger.Error(err.Error())
 		return
 	}
 	if len(content) == 0 {
@@ -43,7 +43,7 @@ func loadRdbFileIntoKVMemoryStore() {
 
 	data, err := parseRDB(content)
 	if err != nil && err.Error() != "EOF" {
-		fmt.Println(err.Error())
+		logger.Error(err.Error())
 		return
 	}
 
@@ -163,13 +163,13 @@ func decodeLength(r *bytes.Reader) (int, error) {
 		length := binary.BigEndian.Uint16([]byte{num & 0b00111111, nextNum})
 		return int(length), nil
 	case num <= 191: // leading bits 10
-		// Next 4 getBytes are the length
-		getBytes := make([]byte, 4)
-		_, err := r.Read(getBytes)
+		// Next 4 bytes are the length
+		bytes := make([]byte, 4)
+		_, err := r.Read(bytes)
 		if err != nil {
 			return 0, err
 		}
-		length := binary.BigEndian.Uint32(getBytes)
+		length := binary.BigEndian.Uint32(bytes)
 		return int(length), nil
 	case num <= 255: // leading bits 11
 		// Next 6 bits indicate the format of the encoded object.
@@ -194,10 +194,9 @@ func parseTable(bytes []byte) []byte {
 	end := sliceIndex(bytes, opCodeEOF)
 	return bytes[start:end]
 }
-
-//func readFile(path string) string {
-//	c, _ := os.ReadFile(path)
-//	key := parseTable(c)
-//	str := key[4 : 4+key[3]]
-//	return string(str)
-//}
+func readFile(path string) string {
+	c, _ := os.ReadFile(path)
+	key := parseTable(c)
+	str := key[4 : 4+key[3]]
+	return string(str)
+}
